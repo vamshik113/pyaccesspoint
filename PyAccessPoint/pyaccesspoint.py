@@ -239,6 +239,7 @@ class AccessPoint:
         # self.execute_shell('ifconfig ' + wlan + ' down'  + IP + ' netmask ' + Netmask)
         # self.execute_shell('ip addr flush ' + wlan)
         logging.debug('hotspot has stopped.')
+        self._execute_shell('sudo nmcli radio wifi on')
         return True
 
     def is_running(self):
