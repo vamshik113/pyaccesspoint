@@ -127,12 +127,12 @@ class AccessPoint:
 
     def _pre_start(self):
         try:
-            self._execute_shell('killall wpa_supplicant')
-
-            result = self._execute_shell('nmcli radio wifi off')
+            self._execute_shell('sudo pkill wpa_supplicant')
+            result = self._execute_shell('sudo nmcli radio wifi off')
+            print("hi")
             if "error" in result.lower():
-                self._execute_shell('nmcli nm wifi off')
-            self._execute_shell('rfkill unblock wlan')
+                self._execute_shell('sudo nmcli nm wifi off')
+            self._execute_shell('sudo rfkill unblock wlan')
             self._execute_shell('sleep 1')
         except:
             pass
@@ -151,29 +151,29 @@ class AccessPoint:
 
         # enable forwarding in sysctl.
         logging.debug('enabling forward in sysctl.')
-        r = self._execute_shell('sysctl -w net.ipv4.ip_forward=1')
+        r = self._execute_shell('sudo sysctl -w net.ipv4.ip_forward=1')
         logging.debug(r.strip())
 
         if self.inet is not None:
             # enable forwarding in iptables.
             logging.debug('creating NAT using iptables: {} <-> {}'.format(self.wlan, self.inet))
-            self._execute_shell('iptables -P FORWARD ACCEPT')
+            self._execute_shell('sudo iptables -P FORWARD ACCEPT')
 
             # add iptables rules to create the NAT.
-            self._execute_shell('iptables --table nat --delete-chain')
-            self._execute_shell('iptables --table nat -F')
-            r = self._execute_shell('iptables --table nat -X')
+            self._execute_shell('sudo iptables --table nat --delete-chain')
+            self._execute_shell('sudo iptables --table nat -F')
+            r = self._execute_shell('sudo iptables --table nat -X')
             if len(r.strip()) > 0:
                 logging.debug(r.strip())
-            self._execute_shell('iptables -t nat -A POSTROUTING -o {} -j MASQUERADE'.format(self.inet))
+            self._execute_shell('sudo iptables -t nat -A POSTROUTING -o {} -j MASQUERADE'.format(self.inet))
             self._execute_shell(
                 'iptables -A FORWARD -i {} -o {} -j ACCEPT -m state --state RELATED,ESTABLISHED'
                     .format(self.inet, self.wlan))
-            self._execute_shell('iptables -A FORWARD -i {} -o {} -j ACCEPT'.format(self.wlan, self.inet))
+            self._execute_shell('sudo iptables -A FORWARD -i {} -o {} -j ACCEPT'.format(self.wlan, self.inet))
 
         # allow traffic to/from wlan
-        self._execute_shell('iptables -A OUTPUT --out-interface {} -j ACCEPT'.format(self.wlan))
-        self._execute_shell('iptables -A INPUT --in-interface {} -j ACCEPT'.format(self.wlan))
+        self._execute_shell('sudo iptables -A OUTPUT --out-interface {} -j ACCEPT'.format(self.wlan))
+        self._execute_shell('sudo iptables -A INPUT --in-interface {} -j ACCEPT'.format(self.wlan))
 
         # start dnsmasq
         s = 'dnsmasq --dhcp-authoritative --interface={} --dhcp-range={}.20,{}.100,{},4h'\
@@ -210,35 +210,36 @@ class AccessPoint:
 
     def _stop_router(self):
         # bring down the interface
-        self._execute_shell('ifconfig mon.' + self.wlan + ' down')
+        self._execute_shell('sudo ifconfig mon.' + self.wlan + ' down')
 
         # stop hostapd
         logging.debug('stopping hostapd')
-        self._execute_shell('pkill hostapd')
+        self._execute_shell('sudo pkill hostapd')
 
         # stop dnsmasq
         logging.debug('stopping dnsmasq')
-        self._execute_shell('killall dnsmasq')
+        self._execute_shell('sudo pkill dnsmasq')
 
         # disable forwarding in iptables.
         logging.debug('disabling forward rules in iptables.')
-        self._execute_shell('iptables -P FORWARD DROP')
+        self._execute_shell('sudo iptables -P FORWARD DROP')
 
         # delete iptables rules that were added for wlan traffic.
         if self.wlan != None:
-            self._execute_shell('iptables -D OUTPUT --out-interface {} -j ACCEPT'.format(self.wlan))
-            self._execute_shell('iptables -D INPUT --in-interface {} -j ACCEPT'.format(self.wlan))
-        self._execute_shell('iptables --table nat --delete-chain')
-        self._execute_shell('iptables --table nat -F')
-        self._execute_shell('iptables --table nat -X')
+            self._execute_shell('sudo iptables -D OUTPUT --out-interface {} -j ACCEPT'.format(self.wlan))
+            self._execute_shell('sudo iptables -D INPUT --in-interface {} -j ACCEPT'.format(self.wlan))
+        self._execute_shell('sudo iptables --table nat --delete-chain')
+        self._execute_shell('sudo iptables --table nat -F')
+        self._execute_shell('sudo iptables --table nat -X')
 
         # disable forwarding in sysctl.
         logging.debug('disabling forward in sysctl.')
-        r = self._execute_shell('sysctl -w net.ipv4.ip_forward=0')
+        r = self._execute_shell('sudo sysctl -w net.ipv4.ip_forward=0')
         logging.debug(r.strip())
         # self.execute_shell('ifconfig ' + wlan + ' down'  + IP + ' netmask ' + Netmask)
         # self.execute_shell('ip addr flush ' + wlan)
         logging.debug('hotspot has stopped.')
+        self._execute_shell("sudo service network-manager restart")
         self._execute_shell('sudo nmcli radio wifi on')
         return True
 
@@ -253,23 +254,20 @@ class AccessPoint:
         if not self.is_running():
             logging.debug("Not running")
             return True
-
-        return self._stop_router()
+        stop_router = self._stop_router()
+        return stop_router
 
     def start(self):
         if not self._check_dependencies():
             return False
-
         if not self._check_parameters():
             return False
-
         if self.is_running():
             logging.debug("Already started")
             return True
-
         self._write_hostapd_config()
-
-        return self._start_router()
+        start_router = self._start_router()
+        return start_router
 
     def _execute_shell(self, command_string):
         p = subprocess.Popen(command_string, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
