@@ -129,7 +129,6 @@ class AccessPoint:
         try:
             self._execute_shell('sudo pkill wpa_supplicant')
             result = self._execute_shell('sudo nmcli radio wifi off')
-            print("hi")
             if "error" in result.lower():
                 self._execute_shell('sudo nmcli nm wifi off')
             self._execute_shell('sudo rfkill unblock wlan')
