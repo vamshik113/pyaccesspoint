@@ -238,8 +238,14 @@ class AccessPoint:
         # self.execute_shell('ifconfig ' + wlan + ' down'  + IP + ' netmask ' + Netmask)
         # self.execute_shell('ip addr flush ' + wlan)
         logging.debug('hotspot has stopped.')
-        self._execute_shell("sudo service network-manager restart")
-        self._execute_shell('sudo nmcli radio wifi on')
+        try:
+            self._execute_shell("sudo systemctl restart network-manager")
+            self._execute_shell('sudo systemctl restart wpa_supplicant')
+            result = self._execute_shell('sudo nmcli radio wifi on')
+            if "error" in result.lower():
+                self._execute_shell('sudo nmcli nm wifi on')
+        except:
+            pass
         return True
 
     def is_running(self):
