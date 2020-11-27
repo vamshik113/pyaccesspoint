@@ -55,7 +55,7 @@ rsn_pairwise=CCMP
 
 
 class AccessPoint:
-    def __init__(self, wlan='wlan0', inet=None, ip='192.168.45.1', netmask='255.255.255.0', ssid='MyAccessPoint',
+    def __init__(self, wlan='wlan0', inet=None, ip='192.168.10.1', netmask='255.255.255.0', ssid='MyAccessPoint',
                  password='1234567890'):
         self.wlan = wlan
         self.inet = inet
@@ -258,7 +258,7 @@ class AccessPoint:
 
         if not self.is_running():
             logging.debug("Not running")
-            return True
+            # return True
         stop_router = self._stop_router()
         return stop_router
 
@@ -269,7 +269,8 @@ class AccessPoint:
             return False
         if self.is_running():
             logging.debug("Already started")
-            return True
+            self._stop_router()
+            # return True
         self._write_hostapd_config()
         start_router = self._start_router()
         return start_router
@@ -278,5 +279,4 @@ class AccessPoint:
         p = subprocess.Popen(command_string, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         p.wait()
         result = p.communicate()
-
         return result[0].decode()
