@@ -174,8 +174,10 @@ class AccessPoint:
         self._execute_shell('sudo iptables -A OUTPUT --out-interface {} -j ACCEPT'.format(self.wlan))
         self._execute_shell('sudo iptables -A INPUT --in-interface {} -j ACCEPT'.format(self.wlan))
 
+        s = 'sudo systemctl restart dnsmasq'
+        self._execute_shell(s)
         # start dnsmasq
-        s = 'dnsmasq --dhcp-authoritative --interface={} --dhcp-range={}.20,{}.100,{},4h'\
+        s = 'sudo dnsmasq --dhcp-authoritative --interface={} --dhcp-range={}.20,{}.100,{},4h'\
             .format(self.wlan, ipparts, ipparts, self.netmask)
 
         logging.debug('running dnsmasq')
